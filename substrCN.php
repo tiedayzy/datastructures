@@ -1,7 +1,6 @@
 <?php
 /**
- * 截取utf8格式中文字符
- *
+ * ============================================================================
  *中文UTF8编码，每个字占3个字节，但是也有一些特殊的字符，会占用一字节或者双字节
  *1个字节：00——7F
  *2个字节：C080——DFBF
@@ -14,94 +13,18 @@
  *192 <= $ord < 224 双字节
  *224<= $ord < 240  三字节
  *中文并没有四个字节的字符
- *
+ *=============================================================================
  *
  */
-function substrCn_UTF8($str,$start,$length) {
-
-    if( $start < 0 ){
-        $start += cnStrlen_utf8( $str );
-
-        if( $start < 0 ){
-            $start = 0;
-        }
-    }
-
-    $slen = strlen( $str );
-
-    if( $len < 0 ){
-        $len += $slen - $start;
-
-        if($len < 0){
-            $len = 0;
-        }
-    }
-
-    $i = 0;
-    $count = 0;
-
-    /* 获取开始位置 */
-    while( $i < $slen && $count < $start){
-        $ord = ord( $str{$i} );
-
-        if( $ord < 127){
-            $i ++;
-        }else if( $ord < 224 ){
-            $i += 2;
-        }else{
-            $i += 3;
-        }
-        $count ++;
-    }
-
-    $count  = 0;
-    $substr = '';
-
-    /* 截取$len个字符 */
-    while( $i < $slen && $count < $len){
-        $ord = ord( $str{$i} );
-
-        if( $ord < 127){
-            $substr .= $str{$i};
-            $i ++;
-        }else if( $ord < 224 ){
-            $substr .= $str{$i} . $str{$i+1};
-            $i += 2;
-        }else{
-            $substr .= $str{$i} . $str{$i+1} . $str{$i+2};
-            $i += 3;
-        }
-        $count ++;
-    }
-
-    return $substr;
- }
-
-function cnSubstr( $str, $start, $len, $encode = 'gbk' ){
-    if( extension_loaded("mbstring") ){
-        //echo "use mbstring";
-        //return mb_substr( $str, $start, $len, $encode );
-    }
-
-    $enc = strtolower( $encode );
-    switch($enc){
-        case 'gbk':
-        case 'gb2312':
-            return cnSubstr_gbk($str, $start, $len);
-            break;
-        case 'utf-8':
-        case 'utf8':
-            return cnSubstr_utf8($str, $start, $len);
-            break;
-        default:
-            //do some warning or trigger error;
-}
-
-function cnStrlen_utf8( $str ){
+ 
+ /**
+  * 统计字符长度
+  **/
+ function strlen_Cn_UTF8( $str ){
     $len  = 0;
     $i    = 0;
     $slen = strlen( $str );
-
+	
     while( $i < $slen ){
         $ord = ord( $str{$i} );
         if( $ord < 127){
@@ -113,9 +36,42 @@ function cnStrlen_utf8( $str ){
         }
         $len ++;
     }
-
     return $len;
 }
+
+/**
+ * utf8截取字符串
+ **/
+function substr_Cn_UTF8($str,$start,$length) {
+
+	$slen = strlen_Cn_UTF8( $str );
+        
+	$start += strlen_Cn_UTF8( $str );
+	$start < 0 && $start = 0;
+	
+	$len += $slen - $start;
+	$len < 0 && $len = 0;
+
+    $index = $sublen = $count = 0;
+	$substr = '';
+	
+    while( $sublen <= $len){
+        $ord = ord( $str{$index} );
+		$count ++;
+        if( $ord < 127){
+            $index ++;
+			$count >= $start && $substr .= $str[$index];
+        }else if( $ord < 224 ){
+            $index += 2;
+			$count >= $start && $substr .= $str[$index-2].$str[$index-1];
+        }else{
+            $index += 3;
+			$count >= $start && $substr .= $str[$index-3].$str[$index-2].$str[$index-1];
+        }
+		$count >= $start && $sublen ++;
+    }
+    return $substr;
+ }
 
 function msubstr($str, $start=0, $length, $charset="utf-8", $suffix=true) {
     if(function_exists("mb_substr"))
